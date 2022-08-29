@@ -176,7 +176,7 @@ Resources:
           # Install ggit
           yum install -y git
           # Install doccano
-          git clone https://github.com/doccano/doccano.git
+          git clone https://github.com/UMD-ARLIS/doccano.git
           cd doccano
           cp docker/.env.example .env
           sed -i s/admin/${Username}/g .env
