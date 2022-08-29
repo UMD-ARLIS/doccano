@@ -6,19 +6,12 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.prod
     image: doccano_backend:prod
+    env_file:
+      - ../.env
     volumes:
       - static_volume:/backend/staticfiles
       - media:/backend/media
       - tmp_file:/backend/filepond-temp-uploads
-    environment:
-      ADMIN_USERNAME: "${ADMIN_USERNAME}"
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
-      ADMIN_EMAIL: ${ADMIN_EMAIL}
-      CELERY_BROKER_URL: "amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq"
-      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
-      ALLOW_SIGNUP: "False"
-      DEBUG: "False"
-      DJANGO_SETTINGS_MODULE: "config.settings.production"
     depends_on:
       - postgres
     networks:
@@ -30,15 +23,12 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.prod
     image: doccano_celery:prod
+    env_file:
+      - ../.env
     volumes:
       - media:/backend/media
       - tmp_file:/backend/filepond-temp-uploads
     entrypoint: ["/opt/bin/prod-celery.sh"]
-    environment:
-      PYTHONUNBUFFERED: "1"
-      CELERY_BROKER_URL: "amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq"
-      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
-      DJANGO_SETTINGS_MODULE: "config.settings.production"
     depends_on:
       - postgres
       - rabbitmq
@@ -50,13 +40,9 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.prod
     image: doccano_flower:prod
+    env_file:
+      - ../.env
     entrypoint: ["/opt/bin/prod-flower.sh"]
-    environment:
-      PYTHONUNBUFFERED: "1"
-      CELERY_BROKER_URL: "amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq"
-      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
-      DJANGO_SETTINGS_MODULE: "config.settings.production"
-      FLOWER_BASIC_AUTH: "${FLOWER_BASIC_AUTH}" # Format "username:password"
     depends_on:
       - celery
     ports:
@@ -67,9 +53,8 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.10.7-alpine
-    environment:
-      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER}"
-      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS}"
+    env_file:
+      - ../.env
     ports:
       - 5672:5672
     networks:
@@ -80,6 +65,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.nginx
     image: doccano_nginx:prod
+    env_file:
+      - ../.env
     command: >
       /bin/sh -c
       "envsubst '
@@ -87,10 +74,6 @@ services:
       '< /etc/nginx/nginx.conf.template
       > /etc/nginx/nginx.conf
       && nginx -g 'daemon off;'"
-    environment:
-      API_URL: "http://backend:8000"
-      GOOGLE_TRACKING_ID: ""
-      WORKER_PROCESSES: "auto"
     volumes:
       - static_volume:/static
       - media:/media
@@ -103,12 +86,10 @@ services:
 
   postgres:
     image: postgres:13.3-alpine
+    env_file:
+      - ../.env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      POSTGRES_DB: "${POSTGRES_DB}"
     networks:
       - network-backend
 
@@ -121,3 +102,4 @@ volumes:
 networks:
   network-backend:
   network-frontend:
+

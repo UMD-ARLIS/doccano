@@ -11,6 +11,10 @@ Parameters:
     Type: String
     Default: "password"
     NoEcho: true
+  Email:
+    Description: "The email of the superuser"
+    Type: String
+    Default: "admin@example.com"
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: AWS::EC2::KeyPair::KeyName
@@ -22,10 +26,33 @@ Parameters:
     AllowedValues:
       - t2.medium
       - t2.large
+      - t2.xlarge
     ConstraintDescription: must be a valid EC2 instance type.
+  AwsAccessKey:
+    Description: AWS Account Access Key for S3 Bucket
+    Type: String
+    Default: "input_your_access_key"
+  AwsSecretKey:
+    Description: AWS Account Secret Access Key for S3 Bucket
+    Type: String
+    Default: "input_your_secret_access_key"
+  AwsRegionName:
+    Description: AWS Region of your S3 Bucket
+    Type: String
+    Default: us-east-1
+    AllowedValues:
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+    ConstraintDescription: must be a valid aws region
+  AwsBucketName:
+    Description: AWS S3 bucket name
+    Type: String
+    Default: "input_your_bucket_name"
   LatestAmiId:
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -109,6 +136,10 @@ Resources:
           FromPort: "22"
           ToPort: "22"
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: "443"
+          ToPort: "443"
+          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
           Value: doccano-ec2-sg
@@ -135,16 +166,29 @@ Resources:
           systemctl enable docker
           service docker start
           # Install docker compose
-          curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-          ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-          # Install git
+          wget https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) 
+          sudo mv docker-compose-$(uname -s)-$(uname -m) /usr/local/bin/docker-compose
+          sudo chmod -v +x /usr/local/bin/docker-compose
+          # Add current user to docker group
+          sudo usermod -a -G docker ec2-user
+          id ec2-user
+          newgrp docker
+          # Install ggit
           yum install -y git
+          # Install doccano
           git clone https://github.com/doccano/doccano.git
           cd doccano
           cp docker/.env.example .env
           sed -i s/admin/${Username}/g .env
           sed -i s/password/${Password}/g .env
+          sed -i s/admin@example.com/${Email}/g .env
+          sed -i s/RABBITMQ_DEFAULT_PASS=doccano/RABBITMQ_DEFAULT_PASS=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)/g .env
+          sed -i s/POSTGRES_PASSWORD=doccano/POSTGRES_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)/g .env
+          sed -i s/SET_YOUR_KEY/${AwsAccessKey}/g .env
+          sed -i s/SET_YOUR_SECRET_KEY/${AwsSecretKey}/g .env
+          sed -i s/SET_YOUR_REGION_NAME/${AwsRegionName}/g .env
+          sed -i s/SET_YOUR_BUCKET_NAME/${AwsBucketName}/g .env
+          # Launch
           docker-compose -f docker/docker-compose.prod.yml up -d
       Tags:
         - Key: Name
