@@ -186,7 +186,7 @@ Resources:
           sudo usermod -a -G docker ec2-user
           id ec2-user
           newgrp docker
-          # Install ggit
+          # Install git
           yum install -y git
           # Install doccano
           git clone https://github.com/UMD-ARLIS/doccano.git
@@ -206,6 +206,7 @@ Resources:
       Tags:
         - Key: Name
           Value: doccano
+
 Outputs:
   PublicDNS:
     Description: EC2 public DNS
