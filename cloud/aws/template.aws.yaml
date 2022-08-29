@@ -10,6 +10,7 @@ Parameters:
     Description: "The password of the superuser"
     Type: String
     Default: "password"
+    MaxLength: 30
     NoEcho: true
   Email:
     Description: "The email of the superuser"
@@ -62,11 +63,16 @@ Metadata:
         Parameters:
           - Username
           - Password
+          - Email
       - Label:
           default: "EC2 Configuration"
         Parameters:
           - KeyName
           - InstanceType
+          - AwsAccessKey
+          - AwsSecretKey
+          - AwsBucketName
+          - AwsRegionName
 
 Resources:
   VPC:
@@ -157,6 +163,13 @@ Resources:
       SecurityGroupIds:
         - !Ref EC2SecurityGroup
       SubnetId: !Ref PublicSubnet
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: "gp2"
+            VolumeSize: 256
+            Encrypted: True
+            DeleteOnTermination: false
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -ex
