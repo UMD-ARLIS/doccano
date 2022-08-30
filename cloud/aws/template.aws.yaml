@@ -16,6 +16,10 @@ Parameters:
     Description: "The email of the superuser"
     Type: String
     Default: "admin@example.com"
+  ServerName:
+    Description: Domain name for the server
+    Type: String
+    Default: "doccano.umd.edu"
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: AWS::EC2::KeyPair::KeyName
@@ -29,6 +33,10 @@ Parameters:
       - t2.large
       - t2.xlarge
     ConstraintDescription: must be a valid EC2 instance type.
+  AdminCidrIp:
+    Description: Admin IPv4 address range, in CIDR format, for restricting SSH access
+    Type: String
+    Default: "0.0.0.0/0"
   AwsAccessKey:
     Description: AWS Account Access Key for S3 Bucket
     Type: String
@@ -141,7 +149,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: "22"
           ToPort: "22"
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref AdminCidrIp
         - IpProtocol: tcp
           FromPort: "443"
           ToPort: "443"
@@ -192,15 +200,16 @@ Resources:
           git clone https://github.com/UMD-ARLIS/doccano.git
           cd doccano
           cp docker/.env.example .env
+          sed -i s/admin@example.com/${Email}/g .env
           sed -i s/admin/${Username}/g .env
           sed -i s/password/${Password}/g .env
-          sed -i s/admin@example.com/${Email}/g .env
           sed -i s/RABBITMQ_DEFAULT_PASS=doccano/RABBITMQ_DEFAULT_PASS=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)/g .env
           sed -i s/POSTGRES_PASSWORD=doccano/POSTGRES_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20)/g .env
           sed -i s/SET_YOUR_KEY/${AwsAccessKey}/g .env
           sed -i s/SET_YOUR_SECRET_KEY/${AwsSecretKey}/g .env
           sed -i s/SET_YOUR_REGION_NAME/${AwsRegionName}/g .env
           sed -i s/SET_YOUR_BUCKET_NAME/${AwsBucketName}/g .env
+          sed -i s/example.domain.com/${ServerName}/g .env
           # Launch
           docker-compose -f docker/docker-compose.prod.yml up -d
       Tags:
